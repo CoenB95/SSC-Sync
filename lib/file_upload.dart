@@ -21,6 +21,7 @@ class FileUploadStatusWidget extends StatefulWidget {
 class FileUploadState extends State<FileUploadStatusWidget> with SingleTickerProviderStateMixin {
   int filesUploaded = 0;
   int totalFileCount = 0;
+  double curFileProgress = 0;
   bool loading = false;
   String status = '';
 
@@ -68,7 +69,7 @@ class FileUploadState extends State<FileUploadStatusWidget> with SingleTickerPro
     if (!loading)
       return 0;
 
-    return filesUploaded <= 0 ? null : filesUploaded / totalFileCount;
+    return (filesUploaded + curFileProgress) / totalFileCount;
   }
 
   Future<bool> _upload() async {
@@ -89,12 +90,18 @@ class FileUploadState extends State<FileUploadStatusWidget> with SingleTickerPro
     } else {
       for (var e in listing) {
         setState(() {
-          status = '$filesUploaded/$totalFileCount';
+          status = '$filesUploaded/$totalFileCount (${(curFileProgress * 100).toStringAsFixed(0)}%)';
         });
-        await widget.client.uploadFile(
-            e.path, widget.remoteDirectoryPath, widget.removeLocalFiles).then((
-            t) {
+        await widget.client.uploadFile(e.path, widget.remoteDirectoryPath,
+            removeAfterSuccess: widget.removeLocalFiles,
+            onProgressUpdate: (v) {
+              setState(() {
+                curFileProgress = v;
+                status = '$filesUploaded/$totalFileCount (${(curFileProgress * 100).toStringAsFixed(0)}%)';
+              });
+            }).then((t) {
           setState(() {
+            curFileProgress = 0;
             filesUploaded++;
           });
         }).catchError((error) async {
@@ -108,7 +115,11 @@ class FileUploadState extends State<FileUploadStatusWidget> with SingleTickerPro
       }
     }
     setState(() {
-      status = err ? 'Klaar; ${totalFileCount - filesUploaded} bestanden zijn niet geüpload' : 'Klaar';
+      status = err
+          ? (totalFileCount == 1
+          ? 'Het bestand kon niet geüpload worden'
+          : '${totalFileCount - filesUploaded} van de $totalFileCount bestanden zijn niet geüpload')
+          : 'Klaar; $filesUploaded bestand${filesUploaded == 1 ? ' is' : 'en zijn'} geüpload';
     });
     await Future.delayed(Duration(seconds: 3));
     setState(() {

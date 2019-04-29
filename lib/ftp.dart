@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:async/async.dart';
@@ -69,7 +70,8 @@ class FTPClient {
     await _conversationChannel.expect([250]); //Success
   }
 
-  Future uploadFile(String localFilePath, String remoteDirectoryPath, [bool removeAfterSuccess = true]) async {
+  Future uploadFile(String localFilePath, String remoteDirectoryPath,
+      {void onProgressUpdate(double value), bool removeAfterSuccess = true}) async {
     await assertConnected();
     await _cwd(remoteDirectoryPath);
     var dataChannel = await _startPassiveSession();
@@ -79,8 +81,8 @@ class FTPClient {
     print("Start file '$localFileName' sending");
     _conversationChannel.send('STOR $localFileName');
     await _conversationChannel.expect([150]); //Started
-    dataChannel.sendRaw(await localFile.readAsBytes());
-    dataChannel.close();
+    await dataChannel.sendFile(localFile, onProgressUpdate: onProgressUpdate);
+    await dataChannel.close();
     await _conversationChannel.expect([226]); //Finished
 
     if (removeAfterSuccess) {
@@ -164,10 +166,9 @@ class FTPSession {
     return session;
   }
 
-  void close() async {
-    await _socket.flush();
-    await _socket.close();
+  Future close() async {
     disconnected = true;
+    return await _socket.close();
   }
 
   Future<FTPResponse> expect(List<int> codes) async {
@@ -195,11 +196,42 @@ class FTPSession {
 
   Future<String> nextData() async => await _inputStream.next;
 
-  void send(String message) {
+  Future send(String message) async {
     _socket.write('$message\r\n');
+    return await _socket.flush();
   }
 
-  void sendRaw(List<int> message) {
-    _socket.add(message);
+  Future sendFile(File file, {void onProgressUpdate(double value)}) async {
+    var dataStream = file.openRead();
+    int dataLength = file.lengthSync();
+    return sendRawStream(dataStream, dataLength, onProgressUpdate: onProgressUpdate);
+  }
+
+  Future sendRawStream(Stream<List<int>> dataStream, int dataLength,
+      {void onProgressUpdate(double value)}) async {
+    int dataCount = 0;
+
+    Stream<List<int>> socketLus = dataStream.transform(
+      new StreamTransformer.fromHandlers(
+        handleData: (data, sink) {
+          dataCount += data.length;
+          var progress = dataCount/dataLength;
+          print('$dataCount/$dataLength (${(progress * 100).toStringAsFixed(1)}%)');
+          if (onProgressUpdate != null)
+            onProgressUpdate(progress);
+          sink.add(data);
+        },
+        handleError: (error, stack, sink) {
+          print('error: $error');
+          sink.close();
+        },
+        handleDone: (sink) {
+          print('success');
+          sink.close();
+        },
+      ),
+    );
+    await _socket.addStream(socketLus);
+    return await _socket.flush();
   }
 }

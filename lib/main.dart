@@ -63,7 +63,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   : 'Laden...'),
               Expanded(
                 child: Center(
-                  child: FileUploadStatusWidget(_client, localDirectoryPath, remoteDirectoryPath,
+                  child: FileUploadStatusWidget(_client, localDirectoryPath,
+                    remoteDirectoryPath,
+                    removeLocalFiles: false,
                   enabled: _client.isAuthenticated && filesOk,
                   ),
                 ),
