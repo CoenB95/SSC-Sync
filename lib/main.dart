@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ssc_sync/file_browser.dart';
 import 'package:ssc_sync/file_upload.dart';
 import 'package:ssc_sync/ftp.dart';
-import 'package:ssc_sync/setting.dart';
+import 'package:ssc_sync/settings.dart';
 
 void main() => runApp(MyApp());
 
@@ -37,6 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   FTPClient _client = FTPClient('ftp.kempengemeenten.nl');
   String localDirectoryPath;
   String remoteDirectoryPath;
+  bool shouldDeleteFiles;
 
   bool get filesOk => localDirectoryPath != null && remoteDirectoryPath != null;
 
@@ -65,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Center(
                   child: FileUploadStatusWidget(_client, localDirectoryPath,
                     remoteDirectoryPath,
-                    removeLocalFiles: false,
+                    removeLocalFiles: shouldDeleteFiles,
                   enabled: _client.isAuthenticated && filesOk,
                   ),
                 ),
@@ -91,8 +92,11 @@ class _MyHomePageState extends State<MyHomePage> {
     var preferences = await SharedPreferences.getInstance();
     localDirectoryPath = preferences.getString('local_location');
     remoteDirectoryPath = preferences.getString('remote_location');
+    shouldDeleteFiles = preferences.getBool('should_delete_files') ?? true;
+    String username = preferences.getString('ftp_username');
+    String password = preferences.getString('ftp_password');
     await _client.connect();
-    await _client.authenticate('Geo1', 'Ftpgeo1');
+    await _client.authenticate(username, password);
     await _client.assertConnected();
 
     setState(() {

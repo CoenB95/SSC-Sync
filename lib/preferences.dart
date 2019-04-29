@@ -3,20 +3,48 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class TextFieldPreference extends StatelessWidget {
-  final String defaultValue;
-  final String emptyText;
+class TogglePreference extends StatelessWidget {
+  final String onText;
+  final String offText;
   final String title;
-  final StringPreference preference;
+  final BooleanPreference preference;
 
-  TextFieldPreference(this.preference, this.title,
-      [this.emptyText = 'Niet ingesteld', this.defaultValue = '']);
+  TogglePreference(this.preference, this.title,
+      [this.onText = '', this.offText = '']);
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(title),
-      subtitle: Text(preference.value ?? 'Niet ingesteld'),
+      subtitle: onText.isEmpty && offText.isEmpty
+          ? null
+          : Text(preference.value ? onText : offText),
+      leading: Checkbox(
+        value: preference.value,
+        onChanged: (v) {
+          preference.value = v;
+        },
+      ),
+    );
+  }
+}
+
+class TextFieldPreference extends StatelessWidget {
+  final String emptyText;
+  final bool hidden;
+  final String title;
+  final StringPreference preference;
+
+  TextFieldPreference(this.preference, this.title, {this.emptyText = 'Niet ingesteld',
+    this.hidden = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(title),
+      subtitle: hidden
+          ? (preference.value == null ? Text(emptyText) : null)
+          : Text(preference.value ?? emptyText),
       onTap: () => _showTextFieldDialog(context),
     );
   }
@@ -35,13 +63,14 @@ class TextFieldPreference extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: title,
                   ),
+                  obscureText: hidden,
                 ),
               ],
             ),
             actions: <Widget>[
               FlatButton(
                 child: Text('Annuleer'),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(context, preference.value),
               ),
               FlatButton(
                 child: Text('Save'),
@@ -55,13 +84,11 @@ class TextFieldPreference extends StatelessWidget {
 }
 
 class FilePreference extends StatelessWidget {
-  final String defaultValue;
   final String emptyText;
   final String title;
   final StringPreference preference;
 
-  FilePreference(this.preference, this.title,
-      [this.emptyText = 'Niet ingesteld', this.defaultValue = '']);
+  FilePreference(this.preference, this.title, [this.emptyText = 'Niet ingesteld']);
 
   @override
   Widget build(BuildContext context) {
@@ -78,14 +105,30 @@ class FilePreference extends StatelessWidget {
   }
 }
 
-class StringPreference {
+class BooleanPreference {
+  final bool defaultValue;
   final String key;
   final SharedPreferences _preferenceManager;
 
-  String get value => _preferenceManager.getString(key);
+  bool get value => _preferenceManager.getBool(key) ?? defaultValue;
+  set value(bool value) => _preferenceManager.setBool(key, value);
+
+  BooleanPreference(this._preferenceManager, this.key, this.defaultValue);
+
+  static Future<BooleanPreference> load(String key, bool defaultValue) async {
+    return BooleanPreference(await SharedPreferences.getInstance(), key, defaultValue);
+  }
+}
+
+class StringPreference {
+  final String defaultValue;
+  final String key;
+  final SharedPreferences _preferenceManager;
+
+  String get value => _preferenceManager.getString(key) ?? defaultValue;
   set value(String value) => _preferenceManager.setString(key, value);
 
-  StringPreference(this._preferenceManager, this.key);
+  StringPreference(this._preferenceManager, this.key, {this.defaultValue});
 
   static Future<StringPreference> load(String key) async {
     return StringPreference(await SharedPreferences.getInstance(), key);

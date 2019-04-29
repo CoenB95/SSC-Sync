@@ -29,8 +29,13 @@ class SettingsState extends State {
               child: Center(
                 child: ListView(
                   children: <Widget>[
+                    TextFieldPreference(StringPreference(preferences, 'ftp_username'), 'Gebruikersnaam'),
+                    TextFieldPreference(StringPreference(preferences, 'ftp_password'), 'Wachtwoord', hidden: true),
+                    Divider(),
                     FilePreference(StringPreference(preferences, 'local_location'), 'Van'),
                     TextFieldPreference(StringPreference(preferences, 'remote_location'), 'Naar'),
+                    TogglePreference(BooleanPreference(preferences, 'should_delete_files', true),
+                        'Bestanden verwijderen na uploaden'),
                   ],
                 ),
               ),
