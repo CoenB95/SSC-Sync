@@ -35,6 +35,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   FTPClient _client = FTPClient('ftp.kempengemeenten.nl');
+  String error;
   String localDirectoryPath;
   String remoteDirectoryPath;
   bool shouldDeleteFiles;
@@ -59,11 +60,11 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Text(_client.isAuthenticated
+              Text(error != null ? error : _client.isAuthenticated
                   ? filesOk
                   ? 'Gereed voor uploaden'
                   : 'Bestandslocaties niet ingesteld'
-                  : 'Laden...'),
+                  : 'Verbinden met server...'),
               Expanded(
                 child: Center(
                   child: Padding(
@@ -88,18 +89,24 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _setupClient() async {
+    _client.logOut();
+    setState(() {
+      error = null;
+    });
     var preferences = await SharedPreferences.getInstance();
     localDirectoryPath = preferences.getString('local_location');
     remoteDirectoryPath = preferences.getString('remote_location');
     shouldDeleteFiles = preferences.getBool('should_delete_files') ?? true;
     String username = preferences.getString('ftp_username');
     String password = preferences.getString('ftp_password');
-    await _client.connect();
-    await _client.authenticate(username, password);
-    await _client.assertConnected();
-
-    setState(() {
-      _client = _client;
+    _client.assertConnected(username, password).then((v) {
+      setState(() {
+        _client = _client;
+      });
+    }, onError: (err) {
+      setState(() {
+        error = err;
+      });
     });
   }
 

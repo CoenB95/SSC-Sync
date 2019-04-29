@@ -16,13 +16,12 @@ class FTPClient {
 
   FTPClient(this._hostname);
 
-  Future<bool> authenticate([String username, String password]) async {
+  Future _authenticate([String username, String password]) async {
     username = username ?? _username;
     password = password ?? _password;
 
     if (_authenticated && _username != null && _username == username) {
       print('Authenticated');
-      return true;
     }
 
     _authenticated = false;
@@ -37,13 +36,11 @@ class FTPClient {
     _authenticated = true;
     _username = username;
     _password = password;
-    return true;
   }
 
-  Future<bool> connect() async {
+  Future _connect() async {
     if (_connected) {
       print('Connected');
-      return true;
     }
 
     print('Connecting...');
@@ -57,17 +54,18 @@ class FTPClient {
       _authenticated = false;
       _connected = false;
     }
-    if (!await connect())
-      throw 'Not connected';
-    if (!await authenticate(username ?? _username, password ?? _password))
-      return 'Not authenticated';
 
-    return true;
+    await _connect();
+    await _authenticate(username ?? _username, password ?? _password);
   }
 
   Future _cwd(String remoteDirectoryPath) async {
     _conversationChannel.send('CWD $remoteDirectoryPath');
     await _conversationChannel.expect([250]); //Success
+  }
+
+  void logOut() {
+    _authenticated = false;
   }
 
   Future uploadFile(String localFilePath, String remoteDirectoryPath,
