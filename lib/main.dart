@@ -60,14 +60,19 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Text(_client.isAuthenticated
-                  ? filesOk ? 'Gereed voor uploaden' : 'Bestandslocaties niet ingesteld'
+                  ? filesOk
+                  ? 'Gereed voor uploaden'
+                  : 'Bestandslocaties niet ingesteld'
                   : 'Laden...'),
               Expanded(
                 child: Center(
-                  child: FileUploadStatusWidget(_client, localDirectoryPath,
-                    remoteDirectoryPath,
-                    removeLocalFiles: shouldDeleteFiles,
-                  enabled: _client.isAuthenticated && filesOk,
+                  child: Padding(
+                    padding: EdgeInsets.all(50),
+                    child: FileUploadStatusWidget(_client, localDirectoryPath,
+                      remoteDirectoryPath,
+                      removeLocalFiles: shouldDeleteFiles,
+                      enabled: _client.isAuthenticated && filesOk,
+                    ),
                   ),
                 ),
               ),
@@ -79,12 +84,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      /*floatingActionButton: FloatingActionButton(
-        heroTag: 'browserFab',
-        onPressed: _client.isAuthenticated ? _toFileBrowser : null,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ),*/
     );
   }
 
