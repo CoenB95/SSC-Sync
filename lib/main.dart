@@ -1,122 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ssc_sync/file_browser.dart';
-import 'package:ssc_sync/file_upload.dart';
-import 'package:ssc_sync/ftp.dart';
-import 'package:ssc_sync/settings.dart';
+import 'package:ftpconnect/ftpconnect.dart';
+import 'package:logger/logger.dart';
+import 'package:ssc_sync/src/controller/settings_controller.dart';
+import 'package:ssc_sync/src/repository/file_repository.dart';
+import 'package:ssc_sync/src/repository/settings_repository.dart';
 
-void main() => runApp(MyApp());
+import 'src/app.dart';
+import 'src/controller/file_controller.dart';
 
-class MyApp extends StatelessWidget {
+void main() {
+  final logger = Logger(
+    filter: ProductionFilter(),
+    printer: SimplePrinter(printTime: true),
+    level: Level.verbose,
+  );
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primaryColor: Color(0xFFC2CE24),
-        primaryColorDark: Color(0xFFA9B50B),
-        accentColor: Color(0xFF00646C),
-        disabledColor: Colors.grey,
-      ),
-      home: MyHomePage(title: 'SSC Sync'),
-    );
-  }
-}
+  final settingsRepository = PreferencesSettingsRepository();
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  final sourceRepository = LocalFileRepository(
+    logger: logger,
+  );
 
-  final String title;
+  final targetRepository = FtpFileRepository(
+    connection: FTPConnect('ftp.kempengemeenten.nl'),
+    logger: logger,
+  );
 
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
+  final fileController = FileController(
+    sourceRepository: sourceRepository,
+    targetRepository: targetRepository,
+  );
 
-class _MyHomePageState extends State<MyHomePage> {
-  FTPClient _client = FTPClient('ftp.kempengemeenten.nl');
-  String error;
-  String localDirectoryPath;
-  String remoteDirectoryPath;
-  bool shouldDeleteFiles;
+  final settingsController = SettingsController(
+    repository: settingsRepository,
+  );
 
-  bool get filesOk => localDirectoryPath != null && remoteDirectoryPath != null;
-
-  @override
-  void initState() {
-    super.initState();
-    _setupClient();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(10),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(error != null ? error : _client.isAuthenticated
-                  ? filesOk
-                  ? 'Gereed voor uploaden'
-                  : 'Bestandslocaties niet ingesteld'
-                  : 'Verbinden met server...'),
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(50),
-                    child: FileUploadStatusWidget(_client, localDirectoryPath,
-                      remoteDirectoryPath,
-                      removeLocalFiles: shouldDeleteFiles,
-                      enabled: _client.isAuthenticated && filesOk,
-                    ),
-                  ),
-                ),
-              ),
-              FlatButton(
-                child: Text('Instellingen'),
-                onPressed: _toSettings,
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _setupClient() async {
-    _client.logOut();
-    setState(() {
-      error = null;
-    });
-    var preferences = await SharedPreferences.getInstance();
-    localDirectoryPath = preferences.getString('local_location');
-    remoteDirectoryPath = preferences.getString('remote_location');
-    shouldDeleteFiles = preferences.getBool('should_delete_files') ?? true;
-    String username = preferences.getString('ftp_username');
-    String password = preferences.getString('ftp_password');
-    _client.assertConnected(username, password).then((v) {
-      setState(() {
-        _client = _client;
-      });
-    }, onError: (err) {
-      setState(() {
-        error = err;
-      });
-    });
-  }
-
-  void _toSettings() async {
-    await Navigator.push(context, new MaterialPageRoute(
-      builder: (c) => SettingsPage(),
-    )
-    );
-
-    //Coming back from settings, things might have changed.
-    _setupClient();
-  }
+  runApp(SscSyncApp(
+    fileController: fileController,
+    settingsController: settingsController,
+  ));
 }
