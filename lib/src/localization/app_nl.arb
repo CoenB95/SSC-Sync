@@ -1,4 +1,10 @@
 {
   "appTitle": "SSC Sync",
-  "settings": "Instellingen"
+  "failureReasonLoginFailed": "Inloggen mislukt",
+  "ftpPassword": "Password",
+  "ftpUsername": "Username",
+  "listingFailed": "Kon bestanden niet ophalen: {reason}",
+  "retry": "Opnieuw",
+  "settings": "Instellingen",
+  "start": "Begin"
 }

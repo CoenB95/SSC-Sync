@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:ftpconnect/ftpconnect.dart';
 import 'package:logger/logger.dart';
+import 'package:pref/pref.dart';
 import 'package:ssc_sync/src/controller/settings_controller.dart';
 import 'package:ssc_sync/src/repository/file_repository.dart';
 import 'package:ssc_sync/src/repository/settings_repository.dart';
 
 import 'src/app.dart';
+import 'src/controller/explorer_controller.dart';
 import 'src/controller/file_controller.dart';
 
-void main() {
+void main() async {
   final logger = Logger(
     filter: ProductionFilter(),
     printer: SimplePrinter(printTime: true),
@@ -22,7 +23,6 @@ void main() {
   );
 
   final targetRepository = FtpFileRepository(
-    connection: FTPConnect('ftp.kempengemeenten.nl'),
     logger: logger,
   );
 
@@ -35,8 +35,20 @@ void main() {
     repository: settingsRepository,
   );
 
-  runApp(SscSyncApp(
-    fileController: fileController,
+  final explorerController = ExplorerController(
     settingsController: settingsController,
+  );
+
+  var preferences = await PrefServiceShared.init();
+  preferences.addListener(() => settingsController.load());
+  await settingsController.load();
+
+  runApp(PrefService(
+    service: preferences,
+    child: SscSyncApp(
+      fileController: fileController,
+      settingsController: settingsController,
+      explorerController: explorerController,
+    ),
   ));
 }

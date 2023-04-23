@@ -70,7 +70,7 @@ class FileUploadView extends AnimatedWidget {
             ),
           ],
         ),
-        Text(fileController.status ?? '<unknown>'),
+        // Text(fileController.status ?? '<unknown>'),
       ],
     );
   }
@@ -88,7 +88,6 @@ class FileUploadView extends AnimatedWidget {
 
   void _upload() {
     fileController.uploadFiles(
-        sourceDirectoryPath: settingsController.localDirectoryPath,
         targetDirectoryPath: settingsController.remoteDirectoryPath);
   }
 }

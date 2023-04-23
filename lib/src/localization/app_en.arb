@@ -1,7 +1,17 @@
 {
   "appTitle": "flutter_application_1",
-  "@appTitle": {
-    "description": "The title of the application"
+  "failureReasonLoginFailed": "Could not login",
+  "ftpPassword": "Password",
+  "ftpUsername": "Username",
+  "listingFailed": "Failed to list files: {reason}",
+  "@listingFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
   },
-  "settings": "Settings"
+  "retry": "Retry",
+  "settings": "Settings",
+  "start": "Start"
 }
